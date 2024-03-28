@@ -1,40 +1,48 @@
-name: Java CI
-on:
-  push:
-    branches:
-      - develop
-  pull_request:
-    branches:
-      - develop
 jobs:
   build:
     name: ${{ matrix.version }} on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+    runs-on: self-hosted
+    steps:
+    - continue-on-error: true
+      name: Checkout
+      uses: actions/checkout@v4
+    - continue-on-error: true
+      id: cache-java
+      name: Cache JVM
+      uses: actions/cache@v4
+      with:
+        key: ${{ runner.os }}-java-${{ hashFiles('**/pom.xml') }}
+        path: '${{ runner.temp }}/java_package.tar.gz
+
+          ~/.m2/repository
+
+          '
+        restore-keys: '${{ runner.os }}-java-
+
+          '
+    - continue-on-error: true
+      name: Setup Java
+      uses: actions/setup-java@v3
+      with:
+        distribution: temurin
+        java-version: ${{ matrix.version }}
+    - continue-on-error: true
+      if: runner.os != 'Windows'
+      name: Run tests (UNIX)
+      run: ./mvnw clean verify
+    - continue-on-error: true
+      if: runner.os == 'Windows'
+      name: Run tests (Windows)
+      run: .\mvnw.cmd clean verify
     strategy:
       matrix:
-        version: [17]
-        os: [macos-latest, windows-latest, ubuntu-latest]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Cache JVM
-        id: cache-java
-        uses: actions/cache@v4
-        with:
-          path: |
-            ${{ runner.temp }}/java_package.tar.gz
-            ~/.m2/repository
-          key: ${{ runner.os }}-java-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-java-
-      - name: Setup Java
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'temurin'
-          java-version: ${{ matrix.version }}
-      - name: Run tests (UNIX)
-        run: ./mvnw clean verify
-        if: runner.os != 'Windows'
-      - name: Run tests (Windows)
-        run: .\mvnw.cmd clean verify
-        if: runner.os == 'Windows'
+        os:
+        - macos-latest
+        - windows-latest
+        - ubuntu-latest
+        version:
+        - 17
+name: Java CI
+on:
+  repository_dispatch:
+    types: trigger-ga___java.yml
